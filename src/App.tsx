@@ -1,110 +1,105 @@
 import { useState, useEffect } from "react";
 
-function Rectangle({ size }: { size: number }) {
+// Rectangle props
+interface RectangleProps {
+  size: number;
+  x: number;
+  y: number;
+}
+
+// Single rectangle component
+function Rectangle({ size, x, y }: RectangleProps) {
   const [broken, setBroken] = useState(false);
 
   if (!broken) {
     return (
       <div
         onClick={(e) => {
-          e.stopPropagation(); // Prevent parent clicks
+          e.stopPropagation();
           setBroken(true);
         }}
-        className="bg-red-400 cursor-pointer"
+        className="bg-red-400 cursor-pointer absolute"
         style={{
           width: size,
           height: size,
           border: "1px solid white",
           boxSizing: "border-box",
+          top: y,
+          left: x,
         }}
       />
     );
   }
 
-  // broken: render 4 smaller squares (size / 2 each)
   const newSize = size / 2;
 
   return (
     <div
-      className="grid grid-cols-2 grid-rows-2 gap-0"
+      className="grid grid-cols-2 grid-rows-2 gap-0 absolute"
       style={{
         width: size,
         height: size,
+        top: y,
+        left: x,
       }}
     >
-      {[...Array(4)].map((_, i) => (
-        <Rectangle key={i} size={newSize} />
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          className="bg-red-400 cursor-pointer"
+          style={{
+            width: newSize,
+            height: newSize,
+            border: "1px solid white",
+            boxSizing: "border-box",
+          }}
+        />
       ))}
     </div>
   );
 }
 
-const Crosshair = () => {
-  const [pos, setPos] = useState({
-    x: window.innerWidth / 2,
-    y: window.innerHeight / 2,
-  });
+interface RectangleItem {
+  id: number;
+  x: number;
+  y: number;
+}
 
-  const handleMouseMove = (e: MouseEvent) => {
-    setPos({ x: e.clientX, y: e.clientY });
-  };
+interface CrosshairProps {
+  setArr: React.Dispatch<React.SetStateAction<RectangleItem[]>>;
+}
 
+// Crosshair component
+const Crosshair: React.FC<CrosshairProps> = ({ setArr }) => {
   const handleClick = (e: MouseEvent) => {
-    console.log("Clicked at:", { x: e.clientX, y: e.clientY });
+    setArr((prev) => [...prev, { id: Date.now(), x: e.clientX, y: e.clientY }]);
   };
 
   useEffect(() => {
-    window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("click", handleClick);
-
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("click", handleClick);
     };
   }, []);
 
+  return null;
+};
+
+// Main App
+const App: React.FC = () => {
+  const [arr, setArr] = useState<RectangleItem[]>([]);
+
   return (
     <>
-      {/* Vertical line */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: pos.x,
-          width: "1px",
-          height: "100vh",
-          backgroundColor: "black",
-          pointerEvents: "none",
-          transform: "translateX(-50%)",
-          zIndex: 9999,
-        }}
-      />
-
-      {/* Horizontal line */}
-      <div
-        style={{
-          position: "fixed",
-          top: pos.y,
-          left: 0,
-          width: "100vw",
-          height: "1px",
-          backgroundColor: "black",
-          pointerEvents: "none",
-          transform: "translateY(-50%)",
-          zIndex: 9999,
-        }}
-      />
+      <Crosshair setArr={setArr} />
+      {arr.map((item) => (
+        <Rectangle key={item.id} size={40} x={item.x} y={item.y} />
+      ))}
     </>
   );
 };
-
-function App() {
-  return (
-    <>
-      <Crosshair />
-      <Rectangle size={40} />
-    </>
-  );
-}
 
 export default App;
